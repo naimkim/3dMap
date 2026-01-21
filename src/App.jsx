@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Clock, Package, Navigation, AlertCircle, TrendingDown } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
-// 더미 데이터
 const DUMMY_STORES = [
   {
     id: 1,
@@ -15,7 +13,6 @@ const DUMMY_STORES = [
     stock_level: 'moderate',
     updated_at: new Date(Date.now() - 5 * 60000),
     next_restock: new Date(Date.now() + 2 * 60 * 60000),
-    building_info: { floor: 1, parking_available: true }
   },
   {
     id: 2,
@@ -29,7 +26,6 @@ const DUMMY_STORES = [
     stock_level: 'low',
     updated_at: new Date(Date.now() - 2 * 60000),
     next_restock: new Date(Date.now() + 4 * 60 * 60000),
-    building_info: { floor: 2, parking_available: true }
   },
   {
     id: 3,
@@ -43,7 +39,6 @@ const DUMMY_STORES = [
     stock_level: 'out',
     updated_at: new Date(Date.now() - 10 * 60000),
     next_restock: new Date(Date.now() + 30 * 60000),
-    building_info: { floor: 1, parking_available: true }
   },
   {
     id: 4,
@@ -57,7 +52,6 @@ const DUMMY_STORES = [
     stock_level: 'plenty',
     updated_at: new Date(Date.now() - 1 * 60000),
     next_restock: null,
-    building_info: { floor: 1, parking_available: false }
   }
 ];
 
@@ -87,24 +81,7 @@ function calculateArrivalData(userLat, userLng, store) {
   };
 }
 
-function StockBadge({ level, count }) {
-  const badges = {
-    plenty: { text: '여유', color: 'bg-green-500' },
-    moderate: { text: '보통', color: 'bg-yellow-500' },
-    low: { text: '임박', color: 'bg-orange-500' },
-    out: { text: '품절', color: 'bg-red-500' }
-  };
-  
-  const badge = badges[level] || badges.moderate;
-  
-  return (
-    <span className={`${badge.color} text-white px-2 py-1 rounded-full text-xs font-semibold`}>
-      {badge.text} ({count}개)
-    </span>
-  );
-}
-
-function StoreCard({ store, userLocation }) {
+function StoreCard({ store, userLocation, isActive, onClick, onNavigate }) {
   const [arrivalData, setArrivalData] = useState(null);
   
   useEffect(() => {
@@ -117,79 +94,89 @@ function StoreCard({ store, userLocation }) {
   const isOutOfStock = store.stock_level === 'out';
   const willBeOutOfStock = arrivalData && arrivalData.predictedStock === 0;
   const isUrgent = arrivalData && arrivalData.predictedStock > 0 && arrivalData.predictedStock <= 3;
-  
   const updatedMinutesAgo = Math.round((Date.now() - store.updated_at) / 60000);
   
+  const badges = {
+    plenty: { text: '여유', color: 'bg-green-500' },
+    moderate: { text: '보통', color: 'bg-yellow-500' },
+    low: { text: '임박', color: 'bg-orange-500' },
+    out: { text: '품절', color: 'bg-red-500' }
+  };
+  
+  const badge = badges[store.stock_level];
+  
   return (
-    <div className={`border rounded-lg p-4 mb-4 transition-all ${
-      isOutOfStock ? 'opacity-50 bg-gray-50' : 'bg-white hover:shadow-lg'
-    } ${isUrgent ? 'border-orange-400 border-2' : 'border-gray-200'}`}>
+    <div 
+      className={`border rounded-xl p-4 mb-3 cursor-pointer transition-all ${
+        isOutOfStock ? 'opacity-60 bg-gray-50' : 'bg-white hover:shadow-xl'
+      } ${isActive ? 'border-purple-500 border-2 shadow-lg' : 'border-gray-200'} ${
+        isUrgent ? 'border-orange-400 border-2' : ''
+      }`}
+      onClick={() => onClick(store)}
+    >
       <div className="flex justify-between items-start mb-3">
-        <div>
-          <h3 className="font-bold text-lg">{store.name}</h3>
-          <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-            <MapPin size={14} />
-            {store.address}
-          </p>
+        <div className="flex-1">
+          <h3 className="font-bold text-lg mb-1">{store.name}</h3>
+          <p className="text-sm text-gray-600">📍 {store.address}</p>
         </div>
-        <StockBadge level={store.stock_level} count={store.stock_count} />
+        <span className={`${badge.color} text-white px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2`}>
+          {badge.text} ({store.stock_count}개)
+        </span>
       </div>
       
-      <div className="text-sm text-gray-500 mb-3">
-        {updatedMinutesAgo}분 전 업데이트
+      <div className="text-xs text-gray-500 mb-3">
+        ⏰ {updatedMinutesAgo}분 전 업데이트
       </div>
       
       {arrivalData && (
-        <div className="bg-blue-50 rounded-lg p-3 mb-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Navigation size={16} className="text-blue-600" />
-            <span className="font-semibold">{arrivalData.distance}km</span>
-            <span className="text-gray-600">·</span>
-            <Clock size={16} className="text-blue-600" />
-            <span className="font-semibold">{arrivalData.driveTime}분 후 도착</span>
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-3">
+          <div className="flex items-center gap-3 text-sm mb-2">
+            <span className="font-semibold">🚗 {arrivalData.distance}km</span>
+            <span className="text-gray-400">·</span>
+            <span className="font-semibold">⏱️ {arrivalData.driveTime}분</span>
           </div>
-          
           <div className="flex items-center gap-2 text-sm">
-            <Package size={16} className={willBeOutOfStock ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-green-600'} />
-            <span>도착 시 예상:</span>
+            <span className="text-gray-600">📦 도착 시 예상:</span>
             <span className={`font-bold ${
               willBeOutOfStock ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-green-600'
             }`}>
               {arrivalData.predictedStock}개
             </span>
           </div>
-          
-          {willBeOutOfStock && (
-            <div className="flex items-center gap-2 text-red-600 text-sm font-semibold">
-              <AlertCircle size={16} />
-              <span>도착 시 품절 가능성 높음</span>
-            </div>
-          )}
-          
-          {isUrgent && !willBeOutOfStock && (
-            <div className="flex items-center gap-2 text-orange-600 text-sm font-semibold">
-              <TrendingDown size={16} />
-              <span>서둘러야 구매 가능!</span>
-            </div>
-          )}
+        </div>
+      )}
+      
+      {willBeOutOfStock && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs font-semibold mb-2">
+          ⚠️ 도착 시 품절 가능성 높음
+        </div>
+      )}
+      
+      {isUrgent && !willBeOutOfStock && (
+        <div className="bg-orange-50 border border-orange-200 text-orange-700 px-3 py-2 rounded-lg text-xs font-semibold mb-2">
+          ⏱️ 서둘러야 구매 가능!
         </div>
       )}
       
       {store.next_restock && (
-        <div className="text-sm text-gray-600 mb-3">
+        <div className="text-xs text-gray-600 mb-2">
           다음 입고: {store.next_restock.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
         </div>
       )}
       
       <button 
         disabled={isOutOfStock}
-        className={`w-full py-2 rounded-lg font-semibold transition-colors ${
+        onClick={(e) => {
+          e.stopPropagation();
+          onNavigate(store);
+        }}
+        className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
           isOutOfStock 
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-            : 'bg-blue-600 text-white hover:bg-blue-700'
+            : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
         }`}
       >
-        {isOutOfStock ? '품절' : '길 안내 시작'}
+        {isOutOfStock ? '품절' : '🧭 길 안내 시작'}
       </button>
     </div>
   );
@@ -200,7 +187,12 @@ export default function App() {
   const [region, setRegion] = useState('');
   const [stores, setStores] = useState(DUMMY_STORES);
   const [userLocation, setUserLocation] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [map, setMap] = useState(null);
+  const [markers, setMarkers] = useState([]);
+  const [polyline, setPolyline] = useState(null);
+  const [userMarker, setUserMarker] = useState(null);
+  const mapRef = useRef(null);
   
   useEffect(() => {
     if (navigator.geolocation) {
@@ -220,99 +212,202 @@ export default function App() {
     }
   }, []);
   
-  const handleSearch = () => {
-    setLoading(true);
-    
-    setTimeout(() => {
-      let filtered = DUMMY_STORES;
+  useEffect(() => {
+    if (userLocation && !map && window.kakao && window.kakao.maps) {
+      const container = mapRef.current;
+      const options = {
+        center: new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+        level: 5
+      };
+      const kakaoMap = new window.kakao.maps.Map(container, options);
+      setMap(kakaoMap);
       
-      if (keyword) {
-        filtered = filtered.filter(s => 
-          s.name.toLowerCase().includes(keyword.toLowerCase()) ||
-          s.tags.some(tag => tag.toLowerCase().includes(keyword.toLowerCase()))
-        );
-      }
+      // 사용자 위치 마커 추가
+      const userPos = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng);
+      const userImageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+      const userImageSize = new window.kakao.maps.Size(24, 35);
+      const userMarkerImage = new window.kakao.maps.MarkerImage(userImageSrc, userImageSize);
       
-      if (region) {
-        filtered = filtered.filter(s => 
-          s.region.toLowerCase().includes(region.toLowerCase())
-        );
-      }
+      const marker = new window.kakao.maps.Marker({
+        position: userPos,
+        image: userMarkerImage,
+        map: kakaoMap
+      });
       
-      if (userLocation) {
-        filtered.sort((a, b) => {
-          if (a.stock_level === 'out' && b.stock_level !== 'out') return 1;
-          if (a.stock_level !== 'out' && b.stock_level === 'out') return -1;
-          
-          const distA = getDistance(userLocation.lat, userLocation.lng, a.lat, a.lng);
-          const distB = getDistance(userLocation.lat, userLocation.lng, b.lat, b.lng);
-          return distA - distB;
-        });
-      }
-      
-      setStores(filtered);
-      setLoading(false);
-    }, 300);
-  };
+      setUserMarker(marker);
+    }
+  }, [userLocation, map]);
   
   useEffect(() => {
-    handleSearch();
+    if (map && window.kakao && window.kakao.maps) {
+      markers.forEach(marker => marker.setMap(null));
+      
+      const newMarkers = stores.map(store => {
+        const markerPosition = new window.kakao.maps.LatLng(store.lat, store.lng);
+        
+        const imageSrc = store.stock_level === 'out' 
+          ? 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png'
+          : 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
+        
+        const imageSize = new window.kakao.maps.Size(24, 35);
+        const markerImage = new window.kakao.maps.MarkerImage(imageSrc, imageSize);
+        
+        const marker = new window.kakao.maps.Marker({
+          position: markerPosition,
+          image: markerImage
+        });
+        
+        marker.setMap(map);
+        
+        window.kakao.maps.event.addListener(marker, 'click', () => {
+          setSelectedStore(store);
+          map.setCenter(markerPosition);
+        });
+        
+        const content = `
+          <div style="padding:10px;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);min-width:150px;">
+            <div style="font-weight:700;margin-bottom:4px;font-size:14px;">${store.name}</div>
+            <div style="font-size:12px;color:#666;">재고: ${store.stock_count}개</div>
+          </div>
+        `;
+        
+        const infowindow = new window.kakao.maps.InfoWindow({
+          content: content
+        });
+        
+        window.kakao.maps.event.addListener(marker, 'mouseover', () => {
+          infowindow.open(map, marker);
+        });
+        
+        window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+          infowindow.close();
+        });
+        
+        return marker;
+      });
+      
+      setMarkers(newMarkers);
+    }
+  }, [map, stores]);
+  
+  useEffect(() => {
+    let filtered = DUMMY_STORES;
+    
+    if (keyword) {
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(keyword.toLowerCase()) ||
+        s.tags.some(tag => tag.toLowerCase().includes(keyword.toLowerCase()))
+      );
+    }
+    
+    if (region) {
+      filtered = filtered.filter(s => 
+        s.region.toLowerCase().includes(region.toLowerCase())
+      );
+    }
+    
+    if (userLocation) {
+      filtered.sort((a, b) => {
+        if (a.stock_level === 'out' && b.stock_level !== 'out') return 1;
+        if (a.stock_level !== 'out' && b.stock_level === 'out') return -1;
+        const distA = getDistance(userLocation.lat, userLocation.lng, a.lat, a.lng);
+        const distB = getDistance(userLocation.lat, userLocation.lng, b.lat, b.lng);
+        return distA - distB;
+      });
+    }
+    
+    setStores(filtered);
   }, [keyword, region, userLocation]);
   
+  const handleStoreClick = (store) => {
+    setSelectedStore(store);
+    if (map && window.kakao && window.kakao.maps) {
+      const moveLatLon = new window.kakao.maps.LatLng(store.lat, store.lng);
+      map.panTo(moveLatLon);
+    }
+  };
+  
+  const handleNavigation = (store) => {
+    if (!map || !userLocation || !window.kakao || !window.kakao.maps) return;
+    
+    // 기존 경로선 제거
+    if (polyline) {
+      polyline.setMap(null);
+    }
+    
+    // 출발지와 도착지
+    const startPos = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng);
+    const endPos = new window.kakao.maps.LatLng(store.lat, store.lng);
+    
+    // 경로선 그리기 (직선)
+    const linePath = [startPos, endPos];
+    
+    const newPolyline = new window.kakao.maps.Polyline({
+      path: linePath,
+      strokeWeight: 5,
+      strokeColor: '#667eea',
+      strokeOpacity: 0.8,
+      strokeStyle: 'solid'
+    });
+    
+    newPolyline.setMap(map);
+    setPolyline(newPolyline);
+    
+    // 출발지와 도착지가 모두 보이도록 지도 범위 조정
+    const bounds = new window.kakao.maps.LatLngBounds();
+    bounds.extend(startPos);
+    bounds.extend(endPos);
+    map.setBounds(bounds);
+    
+    // 카카오맵 앱으로 길찾기 (모바일에서 유용)
+    const kakaoMapUrl = `https://map.kakao.com/link/to/${store.name},${store.lat},${store.lng}/from/현재위치,${userLocation.lat},${userLocation.lng}`;
+    console.log('카카오맵 길찾기:', kakaoMapUrl);
+  };
+  
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-blue-600 text-white p-6 shadow-lg">
-        <h1 className="text-2xl font-bold mb-2">3D 실시간 재고 내비게이션</h1>
-        <p className="text-blue-100 text-sm">정확한 도착 시간과 재고 예측으로 헛걸음 방지</p>
-      </div>
-      
-      <div className="bg-white shadow-md p-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="상품명이나 매장명 검색 (예: 두쫀쿠)"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+    <div className="flex h-screen">
+      <div className="w-96 bg-white overflow-y-auto shadow-2xl z-10">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+          <h1 className="text-2xl font-bold mb-2">🗺️ 3D 재고 내비게이션</h1>
+          <p className="text-sm opacity-90">정확한 도착 시간과 재고 예측</p>
+        </div>
+        
+        <div className="p-4 bg-white border-b sticky top-0 z-5">
+          <input
+            type="text"
+            placeholder="🔍 상품명/매장명 검색"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <input
+            type="text"
+            placeholder="📍 지역 필터 (예: 성수)"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        
+        <div className="p-4">
+          <div className="text-sm text-gray-600 mb-3">
+            총 {stores.length}개 매장 · {userLocation ? '거리순 정렬' : '위치 정보 없음'}
           </div>
-          
-          <div className="relative">
-            <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="지역 필터 (예: 성수, 강남)"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {stores.map(store => (
+            <StoreCard 
+              key={store.id} 
+              store={store} 
+              userLocation={userLocation}
+              isActive={selectedStore?.id === store.id}
+              onClick={handleStoreClick}
+              onNavigate={handleNavigation}
             />
-          </div>
+          ))}
         </div>
       </div>
       
-      <div className="max-w-4xl mx-auto p-4">
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">검색 중...</div>
-        ) : stores.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            검색 결과가 없습니다
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 text-sm text-gray-600">
-              총 {stores.length}개 매장 · {userLocation ? '거리순 정렬' : '위치 정보 없음'}
-            </div>
-            {stores.map(store => (
-              <StoreCard 
-                key={store.id} 
-                store={store} 
-                userLocation={userLocation}
-              />
-            ))}
-          </>
-        )}
+      <div className="flex-1 relative">
+        <div ref={mapRef} className="w-full h-full"></div>
       </div>
     </div>
   );
