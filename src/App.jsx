@@ -3,54 +3,54 @@ import React, { useState, useEffect, useRef } from 'react';
 const DUMMY_STORES = [
   {
     id: 1,
-    name: '두쫀쿠 청담본점',
-    address: '서울 강남구 청담동 123-45',
-    lat: 37.5219,
-    lng: 127.0411,
-    tags: ['두바이쿠키', '디저트', '쿠키'],
-    region: '서울 청담',
-    stock_count: 12,
+    name: '루미브레드 압구정랩',
+    address: '서울 강남구 압구정로 101',
+    lat: 37.5271,
+    lng: 127.0281,
+    tags: ['크루아상', '브런치', '베이커리'],
+    region: '서울 압구정',
+    stock_count: 14,
     stock_level: 'moderate',
-    updated_at: new Date(Date.now() - 5 * 60000),
-    next_restock: new Date(Date.now() + 2 * 60 * 60000),
+    updated_at: new Date(Date.now() - 6 * 60000),
+    next_restock: new Date(Date.now() + 90 * 60000),
   },
   {
     id: 2,
-    name: '두쫀쿠 강남역점',
-    address: '서울 강남구 역삼동 567-89',
-    lat: 37.4979,
-    lng: 127.0276,
-    tags: ['두바이쿠키', '디저트', '쿠키'],
+    name: '루미브레드 강남게이트',
+    address: '서울 강남구 테헤란로 210',
+    lat: 37.4985,
+    lng: 127.0338,
+    tags: ['사워도우', '샌드위치', '커피'],
     region: '서울 강남',
-    stock_count: 3,
+    stock_count: 4,
     stock_level: 'low',
-    updated_at: new Date(Date.now() - 2 * 60000),
-    next_restock: new Date(Date.now() + 4 * 60 * 60000),
+    updated_at: new Date(Date.now() - 3 * 60000),
+    next_restock: new Date(Date.now() + 3 * 60 * 60000),
   },
   {
     id: 3,
-    name: '두쫀쿠 잠실점',
-    address: '서울 송파구 잠실동 234-56',
-    lat: 37.5133,
-    lng: 127.1028,
-    tags: ['두바이쿠키', '디저트', '쿠키'],
+    name: '루미브레드 레이크뷰',
+    address: '서울 송파구 올림픽로 300',
+    lat: 37.5145,
+    lng: 127.1066,
+    tags: ['베이글', '디저트', '티'],
     region: '서울 잠실',
     stock_count: 0,
     stock_level: 'out',
-    updated_at: new Date(Date.now() - 10 * 60000),
-    next_restock: new Date(Date.now() + 30 * 60000),
+    updated_at: new Date(Date.now() - 12 * 60000),
+    next_restock: new Date(Date.now() + 40 * 60000),
   },
   {
     id: 4,
-    name: '두쫀쿠 성수점',
-    address: '서울 성동구 성수동 890-12',
-    lat: 37.5446,
-    lng: 127.0555,
-    tags: ['두바이쿠키', '디저트', '쿠키'],
+    name: '루미브레드 포레스트',
+    address: '서울 성동구 왕십리로 88',
+    lat: 37.5487,
+    lng: 127.0464,
+    tags: ['바게트', '샐러드', '디저트'],
     region: '서울 성수',
-    stock_count: 25,
+    stock_count: 22,
     stock_level: 'plenty',
-    updated_at: new Date(Date.now() - 1 * 60000),
+    updated_at: new Date(Date.now() - 2 * 60000),
     next_restock: null,
   }
 ];
@@ -368,21 +368,21 @@ export default function App() {
     <div className="flex h-screen">
       <div className="w-96 bg-white overflow-y-auto shadow-2xl z-10">
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
-          <h1 className="text-2xl font-bold mb-2">🗺️ 3D 재고 내비게이션</h1>
-          <p className="text-sm opacity-90">정확한 도착 시간과 재고 예측</p>
+          <h1 className="text-2xl font-bold mb-2">🗺️ 루미브레드 스톡 트래커</h1>
+          <p className="text-sm opacity-90">도착 예상 시간과 실시간 판매 흐름</p>
         </div>
         
         <div className="p-4 bg-white border-b sticky top-0 z-5">
           <input
             type="text"
-            placeholder="🔍 상품명/매장명 검색"
+            placeholder="🔍 메뉴/매장 검색"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
           <input
             type="text"
-            placeholder="📍 지역 필터 (예: 성수)"
+            placeholder="📍 지역 필터 (예: 잠실)"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -391,7 +391,7 @@ export default function App() {
         
         <div className="p-4">
           <div className="text-sm text-gray-600 mb-3">
-            총 {stores.length}개 매장 · {userLocation ? '거리순 정렬' : '위치 정보 없음'}
+            총 {stores.length}개 매장 · {userLocation ? '거리순 안내' : '위치 정보 없음'}
           </div>
           {stores.map(store => (
             <StoreCard 
